@@ -3,8 +3,10 @@
 #include "particle.h"
 #include "raylib.h"
 
-void swap_particles(int x_1, int y_1, int x_2, int y_2, int columns, Particle** matrix);
+void swap_particles(int, int, Particle**);
+void reset_has_been_updated(int, int, Particle**);
 
+// Initialize matrix at start (not used for now)
 void initialize_matrix(int rows, int columns, Particle* matrix[rows][columns]) {
     for (int x = rows - 1; x > 0; x--) {
         for (int y = columns; y > 0; y--) {
@@ -12,36 +14,58 @@ void initialize_matrix(int rows, int columns, Particle* matrix[rows][columns]) {
                 Particle* particle = new_particle(SAND, YELLOW);
                 matrix[x][y] = particle;
             } else {
-                // matrix[x][y] = new_particle(SAND, BLUE);
                 matrix[x][y] = NULL;
             }
-            // matrix[x][y] = NULL;
         }
     }
 }
 
+// Update particle position every frame
 void update_particles(int rows, int columns, Particle** matrix) {
     for (int x = rows-1; x > 0; x--) {
         for (int y = columns-1; y > 0; y--) {
             int index = x*columns + y;
-            if (matrix[index] != NULL) {
+            if ((matrix[index] != NULL) && !matrix[index]->has_been_updated) {
+                int new_index = -1;
+
                 switch (matrix[index]->type)
                 {
                 case SAND:
-                    for (int j = -1; j < 2; j++) {
-                        if (y+1 > columns) {
-                            break;
-                        } else if (matrix[x*columns + y + 1] == NULL) {
-                            swap_particles(x, y, x, y+1, columns, matrix);
+                    if (y+1 > columns-1) {
+                        matrix[index]->has_been_updated = true;
+                        break;
+                    }
+                    
+                    if ((matrix[x*columns + y+1] == NULL) || (matrix[x*columns + y+1]->type == WATER)) {
+                        new_index = x*columns + y+1;
+                    } // Check if down-left cell is empty
+                    else if ((x-1 >= 0) && ((matrix[(x-1)*columns + y+1] == NULL) || (matrix[(x-1)*columns + y+1]->type) == WATER)) {
+                        new_index = (x-1)*columns + y+1;
+                    // Check if down-right cell is empty
+                    } else if ((x+1 < rows) && ((matrix[(x+1)*columns + y+1] == NULL) || (matrix[(x+1)*columns + y+1]->type == WATER))) {
+                        new_index = (x+1)*columns + y+1;
+                    }
+
+                    break;
+                case WATER:
+                    if (y+1 < columns) {
+                        if (matrix[x*columns + y+1] == NULL) {
+                            new_index = x*columns + y+1;
+                        } else if ((x-1 >= 0) && (matrix[(x-1)*columns + y+1] == NULL)) {
+                            new_index = (x-1)*columns + y+1;
+                        } else if ((x+1 < rows) && (matrix[(x+1)*columns + y+1] == NULL)) {
+                            new_index = (x+1)*columns + y+1;
                         }
 
-                        if (x-j < 0 || x-j > rows) {
-                            continue;
-                        } else {
-                            if (matrix[(x-j)*columns + y+1] == NULL) {
-                                swap_particles(x, y, x-j, y+1, columns, matrix);
-                            }
+                        if (new_index != -1) {
+                            break;
                         }
+                    }
+                    
+                    if ((x-1 >= 0) && (matrix[(x-1)*columns + y] == NULL)) {
+                        new_index = (x-1)*columns + y;
+                    } else if ((x+1 < rows) && (matrix[(x+1)*columns + y] == NULL)) {
+                        new_index = (x+1)*columns + y;
                     }
 
                     break;
@@ -49,31 +73,62 @@ void update_particles(int rows, int columns, Particle** matrix) {
                 default:
                     break;
                 }
+                if (new_index != -1) {
+                        swap_particles(index, new_index, matrix);
+                        matrix[new_index]->has_been_updated = true;
+                } else {
+                    matrix[index]->has_been_updated = true;
+                }
+            }
+        }
+    }
+    reset_has_been_updated(rows, columns, matrix);
+}
+
+
+// Set has_been_updated variable in all particles to false
+void reset_has_been_updated(int rows, int columns, Particle** matrix) {
+    for (int x = rows-1; x > 0; x--) {
+        for (int y = columns-1; y > 0; y--) {
+            if (matrix[x*columns + y] != NULL) {
+                matrix[x*columns + y]->has_been_updated = false;
             }
         }
     }
 }
 
-void spawn_particle(int x, int y, int columns, Particle** matrix) {
-    // if (matrix[rows][columns] == NULL) {
-    //     matrix[rows][columns] = new_particle(SAND, YELLOW);
-    //     printf("particle spawned at %d %d\n", rows, columns);
-    // }
+// Spawn particle in (x, y)
+void spawn_particle(int x, int y, int columns, int type, Particle** matrix) {
     if (matrix[x * columns + y] == NULL) {
-        matrix[x * columns + y] = new_particle(SAND, YELLOW);
-        // printf("particle spawned at %d %d\n", rows, columns);
+        Color color;
+        switch (type)
+        {
+        case SAND:
+            color = YELLOW;
+            break;
+        case WATER:
+            color = BLUE;
+            break;
+        default:
+            color = WHITE;
+        }
+        matrix[x * columns + y] = new_particle(type, color);
     }
 }
 
-Particle *new_particle(int type, Color color) {
+
+// Returns pointer to Particle (used only in this module)
+Particle* new_particle(int type, Color color) {
     Particle *particle = (Particle *) malloc(sizeof(Particle));
     particle->type = type;
     particle->color = color;
+    particle->has_been_updated = false;
     return particle;
 }
 
-void swap_particles(int x_1, int y_1, int x_2, int y_2, int columns, Particle** matrix) {
-    Particle* temp = matrix[x_1 * columns + y_1];
-    matrix[x_1 * columns + y_1] = matrix[x_2 * columns + y_2];
-    matrix[x_2 * columns + y_2] = temp; 
+// Swap particles in the matrix (used only in this module)
+void swap_particles(int current_index, int new_index, Particle** matrix) {
+    Particle* temp = matrix[current_index];
+    matrix[current_index] = matrix[new_index];
+    matrix[new_index] = temp; 
 }
