@@ -8,6 +8,8 @@
 void swap_particles(int, int, Particle**);
 void free_particle(int, int, int, Particle**);
 void reset_has_been_updated(int, int, Particle**);
+int update_sand(int, int, int, int, Particle**);
+int update_water(int, int, int, int, Particle**);
 
 // Initialize matrix at start (not used for now)
 void initialize_matrix(int rows, int columns, Particle* matrix[rows][columns]) {
@@ -42,42 +44,11 @@ void update_particles(int rows, int columns, Particle** matrix) {
                 switch (matrix[index]->type)
                 {
                 case SAND:
-                    if (y+1 > columns-1) {
-                        matrix[index]->has_been_updated = true;
-                        break;
-                    }
-                    
-                    if ((matrix[x*columns + y+1] == NULL) || (matrix[x*columns + y+1]->type == WATER)) {
-                        new_index = x*columns + y+1;
-                    } // Check if down-left cell is empty
-                    else if ((x-1 >= 0) && ((matrix[(x-1)*columns + y+1] == NULL) || (matrix[(x-1)*columns + y+1]->type) == WATER)) {
-                        new_index = (x-1)*columns + y+1;
-                    // Check if down-right cell is empty
-                    } else if ((x+1 < rows) && ((matrix[(x+1)*columns + y+1] == NULL) || (matrix[(x+1)*columns + y+1]->type == WATER))) {
-                        new_index = (x+1)*columns + y+1;
-                    }
+                    new_index = update_sand(x, y, rows, columns, matrix);
 
                     break;
                 case WATER:
-                    if (y+1 < columns) {
-                        if (matrix[x*columns + y+1] == NULL) {
-                            new_index = x*columns + y+1;
-                        } else if ((x-1 >= 0) && (matrix[(x-1)*columns + y+1] == NULL)) {
-                            new_index = (x-1)*columns + y+1;
-                        } else if ((x+1 < rows) && (matrix[(x+1)*columns + y+1] == NULL)) {
-                            new_index = (x+1)*columns + y+1;
-                        }
-
-                        if (new_index != -1) {
-                            break;
-                        }
-                    }
-                    
-                    if ((x-1 >= 0) && (matrix[(x-1)*columns + y] == NULL)) {
-                        new_index = (x-1)*columns + y;
-                    } else if ((x+1 < rows) && (matrix[(x+1)*columns + y] == NULL)) {
-                        new_index = (x+1)*columns + y;
-                    }
+                    new_index = update_water(x, y, rows, columns, matrix);
 
                     break;
                 
@@ -96,6 +67,48 @@ void update_particles(int rows, int columns, Particle** matrix) {
         }
     }
     reset_has_been_updated(rows, columns, matrix);
+}
+
+int update_sand(int x, int y, int rows, int columns, Particle** matrix) {
+    int new_index = -1;
+    if (y+1 > columns-1) {
+        matrix[x*columns + y]->has_been_updated = true;
+        return new_index;
+    }
+    
+    if ((matrix[x*columns + y+1] == NULL) || (matrix[x*columns + y+1]->type == WATER)) {
+        new_index = x*columns + y+1;
+    } // Check if down-left cell is empty
+    else if ((x-1 >= 0) && ((matrix[(x-1)*columns + y+1] == NULL) || (matrix[(x-1)*columns + y+1]->type) == WATER)) {
+        new_index = (x-1)*columns + y+1;
+    // Check if down-right cell is empty
+    } else if ((x+1 < rows) && ((matrix[(x+1)*columns + y+1] == NULL) || (matrix[(x+1)*columns + y+1]->type == WATER))) {
+        new_index = (x+1)*columns + y+1;
+    }
+
+    return new_index;
+}
+
+int update_water(int x, int y, int rows, int columns, Particle** matrix) {
+    int new_index = -1;
+    if (y+1 < columns) {
+        if (matrix[x*columns + y+1] == NULL) {
+            new_index = x*columns + y+1;
+        } else if ((x-1 >= 0) && (matrix[(x-1)*columns + y+1] == NULL)) {
+            new_index = (x-1)*columns + y+1;
+        } else if ((x+1 < rows) && (matrix[(x+1)*columns + y+1] == NULL)) {
+            new_index = (x+1)*columns + y+1;
+        }
+
+        return new_index;
+    }
+    
+    if ((x-1 >= 0) && (matrix[(x-1)*columns + y] == NULL)) {
+        new_index = (x-1)*columns + y;
+    } else if ((x+1 < rows) && (matrix[(x+1)*columns + y] == NULL)) {
+        new_index = (x+1)*columns + y;
+    }
+     return new_index;
 }
 
 

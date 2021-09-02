@@ -33,7 +33,6 @@ int main(void) {
 
         if (IsMouseButtonDown(MOUSE_LEFT_BUTTON)) {
             Vector2 mouse_pos = GetMousePosition();
-            spawn_particle((int)mouse_pos.x/particle_size, (int)mouse_pos.y/particle_size, matrix_height, current_particle_type, &matrix[0][0]);
 
             for (int x = 0; x < brush_size[0]; x++) {
                 for (int y = 0; y < brush_size[1]; y++) {
