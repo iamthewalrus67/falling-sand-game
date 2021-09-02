@@ -11,7 +11,7 @@ int main(void) {
 
     InitWindow(screen_width, screen_height, "Test Game");
 
-    int particle_size = 3;
+    int particle_size = 10;
     int matrix_width = screen_width/particle_size;
     int matrix_height = screen_height/particle_size;
     int brush_size[] = {1, 1};

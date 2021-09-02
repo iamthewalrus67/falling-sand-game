@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 #include "particle.h"
 #include "raylib.h"
 
@@ -8,6 +9,7 @@
 void swap_particles(int, int, Particle**);
 void free_particle(int, int, int, Particle**);
 void reset_has_been_updated(int, int, Particle**);
+void traverse_matrix(int, int, int, int, int, Particle**);
 int update_sand(int, int, int, int, Particle**);
 int update_water(int, int, int, int, Particle**);
 
@@ -44,8 +46,8 @@ void update_particles(int rows, int columns, Particle** matrix) {
                 switch (matrix[index]->type)
                 {
                 case SAND:
+                    // new_index = update_sand(x, y, rows, columns, matrix);
                     new_index = update_sand(x, y, rows, columns, matrix);
-
                     break;
                 case WATER:
                     new_index = update_water(x, y, rows, columns, matrix);
@@ -70,6 +72,24 @@ void update_particles(int rows, int columns, Particle** matrix) {
 }
 
 int update_sand(int x, int y, int rows, int columns, Particle** matrix) {
+    // int current_index = x*columns + y;
+
+    // if ((y+1 < columns) && (matrix[x*columns + y+1] == NULL)) {
+    //     matrix[current_index]->velocity.y += GRAVITY;
+    // } else {
+    //     matrix[current_index]->velocity.y = 1;
+
+    //     if ((x-1 >= 0) && ((matrix[(x-1)*columns + y+1] == NULL) || (matrix[(x-1)*columns + y+1]->type) == WATER)) {
+    //         matrix[current_index]->velocity.x = -1;
+    //     } else if ((x+1 < rows) && ((matrix[(x+1)*columns + y+1] == NULL) || (matrix[(x+1)*columns + y+1]->type == WATER))) {
+    //         matrix[current_index]->velocity.x = 1;
+    //     }
+    // }
+
+    // int new_x = x + matrix[current_index]->velocity.x;
+    // int new_y = y + matrix[current_index]->velocity.y;
+
+    // traverse_matrix(x, y, new_x, new_y, columns, matrix);
     int new_index = -1;
     if (y+1 > columns-1) {
         matrix[x*columns + y]->has_been_updated = true;
@@ -98,6 +118,10 @@ int update_water(int x, int y, int rows, int columns, Particle** matrix) {
             new_index = (x-1)*columns + y+1;
         } else if ((x+1 < rows) && (matrix[(x+1)*columns + y+1] == NULL)) {
             new_index = (x+1)*columns + y+1;
+        } else if ((x-1 >= 0) && (matrix[(x-1)*columns + y] == NULL)) {
+            new_index = (x-1)*columns + y;
+        } else if ((x+1 < rows) && (matrix[(x+1)*columns + y] == NULL)) {
+            new_index = (x+1)*columns + y;
         }
 
         return new_index;
@@ -108,9 +132,29 @@ int update_water(int x, int y, int rows, int columns, Particle** matrix) {
     } else if ((x+1 < rows) && (matrix[(x+1)*columns + y] == NULL)) {
         new_index = (x+1)*columns + y;
     }
-     return new_index;
+    return new_index;
 }
 
+
+void traverse_matrix(int x, int y, int new_x, int new_y, int columns, Particle** matrix) {
+    float sloap = (float)(y + new_y)/(x+new_x);
+    printf("sloap %f\n", sloap);
+    int current_x = x;
+    int current_y = y;
+    
+    for (int i = x; i != new_x;) {
+        int j = i * sloap;
+        j = (j > floor(j)+0.5) ? ceil(j) : floor(j);
+        if (matrix[i*columns+j] == NULL) {
+            swap_particles(current_x*columns+current_y, i*columns+j, matrix);
+            current_x = i;
+            current_y = j;
+        } else {
+            matrix[current_x*columns + current_y]->has_been_updated = true;
+            break;
+        }
+    }
+}
 
 // Set has_been_updated variable in all particles to false
 void reset_has_been_updated(int rows, int columns, Particle** matrix) {
