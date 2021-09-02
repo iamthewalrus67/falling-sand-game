@@ -3,7 +3,10 @@
 #include "particle.h"
 #include "raylib.h"
 
+#define GRAVITY 10;
+
 void swap_particles(int, int, Particle**);
+void free_particle(int, int, int, Particle**);
 void reset_has_been_updated(int, int, Particle**);
 
 // Initialize matrix at start (not used for now)
@@ -16,6 +19,14 @@ void initialize_matrix(int rows, int columns, Particle* matrix[rows][columns]) {
             } else {
                 matrix[x][y] = NULL;
             }
+        }
+    }
+}
+
+void clear_matrix(int rows, int colums, Particle** matrix) {
+    for (int x = rows-1; x > 0; x--) {
+        for (int y = colums-1; y > 0; y--) {
+            free_particle(x, y, colums, matrix);
         }
     }
 }
@@ -73,6 +84,8 @@ void update_particles(int rows, int columns, Particle** matrix) {
                 default:
                     break;
                 }
+
+
                 if (new_index != -1) {
                         swap_particles(index, new_index, matrix);
                         matrix[new_index]->has_been_updated = true;
@@ -109,6 +122,9 @@ void spawn_particle(int x, int y, int columns, int type, Particle** matrix) {
         case WATER:
             color = BLUE;
             break;
+        case SOLID:
+            color = BROWN;
+            break;
         default:
             color = WHITE;
         }
@@ -123,7 +139,14 @@ Particle* new_particle(int type, Color color) {
     particle->type = type;
     particle->color = color;
     particle->has_been_updated = false;
+    particle->velocity = (Vector2) {0, 0};
     return particle;
+}
+
+// Delete particle from matrix
+void free_particle(int x, int y, int columns, Particle** matrix) {
+    free(matrix[x*columns + y]);
+    matrix[x*columns + y] = NULL;
 }
 
 // Swap particles in the matrix (used only in this module)
